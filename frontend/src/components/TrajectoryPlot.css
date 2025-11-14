@@ -1,0 +1,29 @@
+.trajectory-plot {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.plot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 2rem;
+}
+
+.plot-section {
+  background: #f9f9f9;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .plot-section {
+    background: #2a2a2a;
+  }
+}
+
+.plot-section h4 {
+  margin: 0 0 1rem 0;
+  color: #667eea;
+  font-size: 1.1rem;
+}
