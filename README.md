@@ -218,7 +218,7 @@ POST /api/upload
 Content-Type: multipart/form-data
 ```
 **Parameters:**
-- `file` - WITSML XML file (max 50MB)
+- `file` - WITSML XML file (max 200MB)
 
 **Response:**
 ```json
@@ -310,7 +310,7 @@ Ensure backend is running before frontend. The frontend proxies API requests to 
 
 ### File Upload Fails
 
-- Check file size (max 50MB)
+- Check file size (max 200MB)
 - Verify file is valid XML
 - Check browser console for errors
 
