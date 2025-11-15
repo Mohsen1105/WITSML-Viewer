@@ -4,7 +4,7 @@ import multer from 'multer'
 import { detectFileFormat } from './parsers/formatDetector.js'
 import { parseLASFile } from './parsers/lasParser.js'
 import { parseWitsmlFile } from './parsers/witsmlParser.js'
-import { parseWitsmlFileStreaming } from './parsers/streamingParser.js'
+import { parseWitsmlFileSAX } from './parsers/saxParser.js'
 import { MudLogSchema } from './types/mudLogSchema.js'
 
 const app = express()
@@ -69,9 +69,14 @@ app.post('/api/upload', (req, res) => {
           break
 
         case 'WITSML':
-          // Always use standard parser with aggressive memory optimization for large files
-          console.log(`📋 Using optimized WITSML parser`)
-          parsedData = await parseWitsmlFile(xmlContent)
+          // Use SAX streaming parser for large files (>200MB)
+          if (fileSizeInMB > STREAMING_THRESHOLD_MB) {
+            console.log(`🌊 Using SAX streaming parser (true streaming, no memory limits)`)
+            parsedData = await parseWitsmlFileSAX(xmlContent, CHUNK_SIZE)
+          } else {
+            console.log(`📋 Using standard WITSML parser`)
+            parsedData = await parseWitsmlFile(xmlContent)
+          }
           break
 
         case 'CSV':
