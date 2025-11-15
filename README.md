@@ -106,6 +106,12 @@ Start both frontend and backend concurrently:
 npm run dev
 ```
 
+**For large files (>1GB)**, use the high-memory mode:
+```bash
+npm run dev:large-files
+```
+This allocates 8GB of memory to Node.js for handling very large WITSML files.
+
 Or run them separately:
 
 **Backend only:**
@@ -218,7 +224,7 @@ POST /api/upload
 Content-Type: multipart/form-data
 ```
 **Parameters:**
-- `file` - WITSML XML file (max 200MB)
+- `file` - WITSML XML file (max 2GB)
 
 **Response:**
 ```json
@@ -282,9 +288,11 @@ Then serve the frontend build from `frontend/dist` using a static server or reve
 
 ### Performance Optimization
 
-- Large files (>10MB) may take time to parse
+- **Large files (>500MB)** may take time to parse and require sufficient memory
+- **Very large files (>1GB)** - Ensure your system has adequate RAM (8GB+ recommended)
 - Consider pagination for tables with 1000+ rows
 - 3D rendering is optimized for trajectories with <1000 stations
+- For files approaching 2GB, close other applications to free up memory
 
 ## Troubleshooting
 
@@ -310,9 +318,27 @@ Ensure backend is running before frontend. The frontend proxies API requests to 
 
 ### File Upload Fails
 
-- Check file size (max 200MB)
+- Check file size (max 2GB)
 - Verify file is valid XML
 - Check browser console for errors
+
+### Large File Issues
+
+If you're experiencing issues with large files (>1GB):
+
+**Memory errors:**
+- Increase Node.js memory limit: `NODE_OPTIONS="--max-old-space-size=8192" npm run dev:backend` (sets to 8GB)
+- Close other applications to free up RAM
+- Consider upgrading system memory
+
+**Slow parsing:**
+- Large files can take 30-60 seconds or more to parse
+- Wait for the loading indicator to complete
+- Check browser/server console for progress
+
+**Browser crashes:**
+- Very large parsed data may overwhelm the browser
+- Consider extracting only needed data from the WITSML file before uploading
 
 ## Contributing
 

@@ -8,12 +8,12 @@ const PORT = process.env.PORT || 5001
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage()
-const upload = multer({ storage, limits: { fileSize: 200 * 1024 * 1024 } }) // 200MB limit
+const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 * 1024 } }) // 2GB limit
 
 // Middleware
 app.use(cors())
-app.use(express.json({ limit: '200mb' }))
-app.use(express.urlencoded({ limit: '200mb', extended: true }))
+app.use(express.json({ limit: '2gb' }))
+app.use(express.urlencoded({ limit: '2gb', extended: true }))
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -28,7 +28,7 @@ app.post('/api/upload', (req, res) => {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({
           error: 'File too large',
-          details: 'Maximum file size is 200MB. Please try a smaller file.',
+          details: 'Maximum file size is 2GB. Please try a smaller file.',
         })
       }
       return res.status(400).json({
@@ -61,5 +61,6 @@ app.post('/api/upload', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 WITSML Viewer API running on http://localhost:${PORT}`)
   console.log(`📊 Ready to parse WITSML files (versions 1.3.1, 1.4.1, 2.0, 2.1)`)
-  console.log(`📁 Maximum file size: 200MB`)
+  console.log(`📁 Maximum file size: 2GB`)
+  console.log(`⚠️  Note: Large files (>500MB) may take time to parse and require sufficient memory`)
 })
