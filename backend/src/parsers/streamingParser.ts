@@ -24,78 +24,62 @@ export async function parseWitsmlFileStreaming(xmlContent: string): Promise<Stre
 
     // Create a readable stream from the XML string
     const stream = Readable.from([xmlContent])
-    const xml = new XmlStream(stream)
+    const xml = new XmlStream(stream, {
+      preserveMarkup: 0,
+      trim: true,
+      normalize: true,
+      lowercase: false
+    })
 
-    // Result object
-    const result: any = {
-      version,
-      type: 'unknown',
-      metadata: {},
-      wells: [],
-      wellbores: [],
-      logs: [],
-      trajectories: [],
-      logData: null,
-      trajectoryStations: null,
-    }
+    // Result object - will build dynamically
+    let rootData: any = null
+    let rootName = ''
+    const elementCounts = new Map<string, number>()
 
-    let dataPointCount = 0
-    const MAX_DATA_POINTS = 1000
-    let samplingRate = 1
+    // Preserve elements (don't flatten them)
+    xml.preserve('witsml', true)
+    xml.preserve('logs', true)
+    xml.preserve('log', true)
+    xml.preserve('logData', true)
+    xml.preserve('data', true)
+    xml.preserve('trajectoryStation', true)
+    xml.preserve('station', true)
 
-    // Collect elements but sample large arrays
-    xml.collect('trajectoryStation')
-    xml.collect('station')
+    // Listen for all element updates
+    xml.on('updateElement', function(name: string, element: any) {
+      // Count elements
+      const count = (elementCounts.get(name) || 0) + 1
+      elementCounts.set(name, count)
 
-    // Handle trajectory data
-    xml.on('endElement: trajectoryStation', function (item: any) {
-      if (!result.trajectoryStations) {
-        result.trajectoryStations = []
+      // Log first occurrence of each element type
+      if (count === 1) {
+        console.log(`  📦 Found element: <${name}>`)
       }
+    })
 
-      // Sample trajectory data if too many points
-      if (result.trajectoryStations.length < MAX_DATA_POINTS) {
-        result.trajectoryStations.push(item)
-      } else if (result.trajectoryStations.length === MAX_DATA_POINTS) {
-        console.log(`  📉 Sampling trajectory data: keeping 1 in every ${samplingRate} stations`)
-        samplingRate = 2
-      } else if (dataPointCount % samplingRate === 0) {
-        result.trajectoryStations.push(item)
+    // Capture the root WITSML structure
+    xml.on('endElement: witsml', function(element: any) {
+      rootData = element
+      rootName = 'witsml'
+      console.log(`  🌳 Captured root structure: <witsml>`)
+    })
+
+    // Fallback: capture logs directly
+    xml.on('endElement: logs', function(element: any) {
+      if (!rootData) {
+        rootData = { logs: element }
+        rootName = 'logs'
+        console.log(`  🌳 Captured root structure: <logs>`)
       }
-      dataPointCount++
     })
 
-    // Handle log data
-    xml.on('endElement: logData', function (item: any) {
-      if (!result.logData) {
-        result.logData = []
+    // Fallback: capture individual log
+    xml.on('endElement: log', function(element: any) {
+      if (!rootData) {
+        rootData = { log: element }
+        rootName = 'log'
+        console.log(`  🌳 Captured root structure: <log>`)
       }
-      if (result.logData.length < MAX_DATA_POINTS) {
-        result.logData.push(item)
-      } else if (result.logData.length === MAX_DATA_POINTS) {
-        console.log(`  📉 Sampling log data: keeping 1 in every ${samplingRate} rows`)
-        samplingRate = 2
-      } else if (dataPointCount % samplingRate === 0) {
-        result.logData.push(item)
-      }
-      dataPointCount++
-    })
-
-    // Handle well/wellbore metadata
-    xml.on('endElement: well', function (item: any) {
-      result.wells.push(item)
-    })
-
-    xml.on('endElement: wellbore', function (item: any) {
-      result.wellbores.push(item)
-    })
-
-    xml.on('endElement: log', function (item: any) {
-      result.logs.push(item)
-    })
-
-    xml.on('endElement: trajectory', function (item: any) {
-      result.trajectories.push(item)
     })
 
     xml.on('error', (err: Error) => {
@@ -104,29 +88,76 @@ export async function parseWitsmlFileStreaming(xmlContent: string): Promise<Stre
     })
 
     xml.on('end', () => {
-      // Determine object type from collected data
-      if (result.trajectoryStations || result.trajectories.length > 0) {
-        result.type = 'trajectory'
-      } else if (result.logData || result.logs.length > 0) {
-        result.type = 'log'
-      } else if (result.wellbores.length > 0) {
-        result.type = 'wellbore'
-      } else if (result.wells.length > 0) {
-        result.type = 'well'
+      // Log element summary
+      console.log(`\n  📊 Element Summary:`)
+      const sortedElements = Array.from(elementCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+
+      sortedElements.forEach(([name, count]) => {
+        console.log(`     - <${name}>: ${count} occurrences`)
+      })
+
+      // Determine object type
+      let objectType = 'unknown'
+      if (elementCounts.has('trajectoryStation') || elementCounts.has('station')) {
+        objectType = 'trajectory'
+      } else if (elementCounts.has('logData') || elementCounts.has('logCurveInfo')) {
+        objectType = 'log'
+      } else if (elementCounts.has('wellbore')) {
+        objectType = 'wellbore'
+      } else if (elementCounts.has('well')) {
+        objectType = 'well'
       }
 
-      console.log(`✅ Streaming parse complete: ${version} ${result.type}`)
-      console.log(`   Collected ${dataPointCount} total data points, stored ${Math.min(dataPointCount, MAX_DATA_POINTS + samplingRate * 100)}`)
+      // Sample large arrays in the final structure
+      if (rootData) {
+        rootData = sampleLargeArrays(rootData, 1000)
+      }
+
+      console.log(`✅ Streaming parse complete: ${version} ${objectType}`)
+      console.log(`   Root element: <${rootName}>`)
 
       resolve({
         version,
-        type: result.type,
-        data: result,
+        type: objectType,
+        data: rootData || { empty: true },
         raw: '', // Never store raw for streamed files
         isStreamed: true,
       })
     })
   })
+}
+
+/**
+ * Sample large arrays to prevent memory issues
+ */
+function sampleLargeArrays(obj: any, maxItems: number): any {
+  if (Array.isArray(obj)) {
+    if (obj.length > maxItems) {
+      console.log(`  📉 Sampling array with ${obj.length} items down to ${maxItems}`)
+      const step = Math.floor(obj.length / maxItems)
+      const sampled = []
+      for (let i = 0; i < obj.length; i += step) {
+        sampled.push(sampleLargeArrays(obj[i], maxItems))
+      }
+      // Always include last item
+      if (sampled.length < maxItems && obj.length > 0) {
+        sampled.push(sampleLargeArrays(obj[obj.length - 1], maxItems))
+      }
+      return sampled
+    }
+    return obj.map(item => sampleLargeArrays(item, maxItems))
+  } else if (typeof obj === 'object' && obj !== null) {
+    const result: any = {}
+    for (const key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        result[key] = sampleLargeArrays(obj[key], maxItems)
+      }
+    }
+    return result
+  }
+  return obj
 }
 
 function detectWitsmlVersionFromHeader(header: string): string {
