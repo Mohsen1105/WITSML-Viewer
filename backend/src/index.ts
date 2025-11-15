@@ -4,7 +4,7 @@ import multer from 'multer'
 import { parseWitsmlFile } from './parsers/witsmlParser.js'
 
 const app = express()
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 5001
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage()

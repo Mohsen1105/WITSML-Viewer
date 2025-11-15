@@ -26,7 +26,7 @@ function FileUpload({ onFileLoaded, refreshInterval, onRefreshIntervalChange, is
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await axios.post<WitsmlData>('http://localhost:5000/api/upload', formData, {
+      const response = await axios.post<WitsmlData>('/api/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

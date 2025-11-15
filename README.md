@@ -121,8 +121,8 @@ npm run dev:frontend
 ### Access the Application
 
 - **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000
-- **Health Check**: http://localhost:5000/api/health
+- **Backend API**: http://localhost:5001
+- **Health Check**: http://localhost:5001/api/health
 
 ## Usage
 
@@ -290,7 +290,7 @@ Then serve the frontend build from `frontend/dist` using a static server or reve
 
 ### Port Already in Use
 
-If ports 3000 or 5000 are in use:
+If ports 3000 or 5001 are in use:
 
 **Frontend** - Edit `frontend/vite.config.ts`:
 ```ts
@@ -301,12 +301,12 @@ server: {
 
 **Backend** - Set environment variable:
 ```bash
-PORT=5001 npm run dev:backend
+PORT=5002 npm run dev:backend
 ```
 
 ### CORS Errors
 
-Ensure backend is running before frontend. The frontend proxies API requests to `http://localhost:5000`.
+Ensure backend is running before frontend. The frontend proxies API requests to `http://localhost:5001`.
 
 ### File Upload Fails
 
