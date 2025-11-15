@@ -24,12 +24,7 @@ export async function parseWitsmlFileStreaming(xmlContent: string): Promise<Stre
 
     // Create a readable stream from the XML string
     const stream = Readable.from([xmlContent])
-    const xml = new XmlStream(stream, {
-      preserveMarkup: 0,
-      trim: true,
-      normalize: true,
-      lowercase: false
-    })
+    const xml = new XmlStream(stream)
 
     // Result object - will build dynamically
     let rootData: any = null
