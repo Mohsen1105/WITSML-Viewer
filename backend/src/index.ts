@@ -1,30 +1,34 @@
 import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
+import { detectFileFormat } from './parsers/formatDetector.js'
+import { parseLASFile } from './parsers/lasParser.js'
 import { parseWitsmlFile } from './parsers/witsmlParser.js'
 import { parseWitsmlFileStreaming } from './parsers/streamingParser.js'
+import { MudLogSchema } from './types/mudLogSchema.js'
 
 const app = express()
 const PORT = process.env.PORT || 5001
 
 // File size thresholds
 const STREAMING_THRESHOLD_MB = 200 // Use streaming parser for files > 200MB
+const CHUNK_SIZE = 1000 // Rows per chunk
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage()
-const upload = multer({ storage, limits: { fileSize: 2 * 1024 * 1024 * 1024 } }) // 2GB limit
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 * 1024 } }) // 10GB limit
 
 // Middleware
 app.use(cors())
-app.use(express.json({ limit: '2gb' }))
-app.use(express.urlencoded({ limit: '2gb', extended: true }))
+app.use(express.json({ limit: '100mb' }))
+app.use(express.urlencoded({ limit: '100mb', extended: true }))
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'WITSML Viewer API is running' })
+  res.json({ status: 'ok', message: 'Universal Mud Logging Viewer API is running' })
 })
 
-// Upload and parse WITSML file
+// Upload and parse mud logging file (any format)
 app.post('/api/upload', (req, res) => {
   upload.single('file')(req, res, async (err) => {
     // Handle multer errors
@@ -32,7 +36,7 @@ app.post('/api/upload', (req, res) => {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({
           error: 'File too large',
-          details: 'Maximum file size is 2GB. Please try a smaller file.',
+          details: 'Maximum file size is 10GB.',
         })
       }
       return res.status(400).json({
@@ -47,34 +51,82 @@ app.post('/api/upload', (req, res) => {
       }
 
       const fileSizeInMB = req.file.size / (1024 * 1024)
+      const filename = req.file.originalname
       const xmlContent = req.file.buffer.toString('utf-8')
 
-      // Choose parser based on file size
-      let parsedData
-      if (fileSizeInMB > STREAMING_THRESHOLD_MB) {
-        console.log(`🌊 Using streaming parser for ${fileSizeInMB.toFixed(2)} MB file`)
-        parsedData = await parseWitsmlFileStreaming(xmlContent)
-      } else {
-        console.log(`📋 Using standard parser for ${fileSizeInMB.toFixed(2)} MB file`)
-        parsedData = await parseWitsmlFile(xmlContent)
+      console.log(`\n📁 Processing file: ${filename} (${fileSizeInMB.toFixed(2)} MB)`)
+
+      // Detect file format
+      const detection = detectFileFormat(xmlContent, filename)
+      console.log(`🔍 Detected format: ${detection.format} ${detection.version || ''} (confidence: ${(detection.confidence * 100).toFixed(0)}%)`)
+
+      let parsedData: any
+
+      // Route to appropriate parser
+      switch (detection.format) {
+        case 'LAS':
+          parsedData = parseLASFile(xmlContent, CHUNK_SIZE)
+          break
+
+        case 'WITSML':
+          if (fileSizeInMB > STREAMING_THRESHOLD_MB) {
+            console.log(`🌊 Using streaming parser for large WITSML file`)
+            parsedData = await parseWitsmlFileStreaming(xmlContent)
+          } else {
+            console.log(`📋 Using standard WITSML parser`)
+            parsedData = await parseWitsmlFile(xmlContent)
+          }
+          break
+
+        case 'CSV':
+          // TODO: Implement CSV parser
+          return res.status(501).json({
+            error: 'CSV format not yet implemented',
+            details: 'CSV parser coming soon'
+          })
+
+        case 'DLIS':
+          // TODO: Implement DLIS parser
+          return res.status(501).json({
+            error: 'DLIS format not yet implemented',
+            details: 'DLIS is a binary format, parser coming soon'
+          })
+
+        default:
+          return res.status(400).json({
+            error: 'Unknown file format',
+            details: `Could not detect a supported mud logging format. Detected: ${detection.format}`,
+            suggestion: 'Supported formats: WITSML (.xml), LAS (.las), CSV (.csv)'
+          })
       }
 
       res.json(parsedData)
     } catch (error: any) {
-      console.error('Error parsing WITSML file:', error)
+      console.error('❌ Error parsing file:', error)
       res.status(500).json({
-        error: 'Failed to parse WITSML file',
+        error: 'Failed to parse file',
         details: error.message,
       })
     }
   })
 })
 
+// Get data chunk (for pagination)
+app.get('/api/data/chunk/:chunkIndex', (req, res) => {
+  // TODO: Implement chunk retrieval from storage
+  res.status(501).json({ error: 'Chunk retrieval not yet implemented' })
+})
+
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 WITSML Viewer API running on http://localhost:${PORT}`)
-  console.log(`📊 Ready to parse WITSML files (versions 1.3.1, 1.4.1, 2.0, 2.1)`)
-  console.log(`📁 Maximum file size: 2GB`)
-  console.log(`🌊 Streaming parser: Enabled for files > ${STREAMING_THRESHOLD_MB}MB`)
-  console.log(`⚡ Memory-efficient mode for 1GB+ files`)
+  console.log(`\n🚀 Universal Mud Logging Viewer API`)
+  console.log(`   Running on http://localhost:${PORT}`)
+  console.log(`\n📊 Supported Formats:`)
+  console.log(`   ✅ WITSML (all versions) - XML format`)
+  console.log(`   ✅ LAS (2.0, 3.0) - Log ASCII Standard`)
+  console.log(`   🚧 CSV - Coming soon`)
+  console.log(`   🚧 DLIS - Coming soon`)
+  console.log(`\n💾 File Size: Up to 10GB`)
+  console.log(`📦 Chunking: ${CHUNK_SIZE} rows per chunk`)
+  console.log(`🌊 Streaming: Enabled for files > ${STREAMING_THRESHOLD_MB}MB\n`)
 })
