@@ -8,7 +8,7 @@ const app = express()
 const PORT = process.env.PORT || 5001
 
 // File size thresholds
-const STREAMING_THRESHOLD_MB = 500 // Use streaming parser for files > 500MB
+const STREAMING_THRESHOLD_MB = 200 // Use streaming parser for files > 200MB
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage()
