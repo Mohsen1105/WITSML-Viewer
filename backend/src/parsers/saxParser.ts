@@ -45,11 +45,22 @@ export async function parseWitsmlFileSAX(xmlContent: string, maxRows: number = 1
     // Track what we've found
     let foundLogData = false
     let foundLogCurveInfo = false
+    const allElements = new Set<string>()
+    let elementCount = 0
 
     parser.on('opentag', (node) => {
       currentPath.push(node.name)
       currentElement = node.name
       currentText = ''
+
+      // Track all unique elements for debugging
+      allElements.add(node.name)
+      elementCount++
+
+      // Log first few elements to understand structure
+      if (elementCount <= 20) {
+        console.log(`  📦 Element: <${currentPath.join('/')}${node.attributes.xmlns ? ' xmlns="' + node.attributes.xmlns + '"' : ''}>`)
+      }
 
       // Detect version from namespace
       if (node.name === 'logs' || node.name === 'log') {
@@ -155,6 +166,12 @@ export async function parseWitsmlFileSAX(xmlContent: string, maxRows: number = 1
       console.log(`   Found ${curves.length} curves`)
       console.log(`   Processed ${totalRowCount} rows, kept ${dataRows.length} samples`)
       console.log(`   Sampling rate: 1:${samplingRate}`)
+      console.log(`\n  🔍 Diagnostic Info:`)
+      console.log(`   Total elements processed: ${elementCount}`)
+      console.log(`   Unique element types: ${allElements.size}`)
+      console.log(`   Element types found:`, Array.from(allElements).slice(0, 30).join(', '))
+      console.log(`   foundLogCurveInfo: ${foundLogCurveInfo}`)
+      console.log(`   foundLogData: ${foundLogData}`)
 
       resolve({
         version,
