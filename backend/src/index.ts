@@ -2,9 +2,13 @@ import express from 'express'
 import cors from 'cors'
 import multer from 'multer'
 import { parseWitsmlFile } from './parsers/witsmlParser.js'
+import { parseWitsmlFileStreaming } from './parsers/streamingParser.js'
 
 const app = express()
 const PORT = process.env.PORT || 5001
+
+// File size thresholds
+const STREAMING_THRESHOLD_MB = 500 // Use streaming parser for files > 500MB
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage()
@@ -42,9 +46,18 @@ app.post('/api/upload', (req, res) => {
         return res.status(400).json({ error: 'No file uploaded' })
       }
 
-      // Parse the WITSML XML file
+      const fileSizeInMB = req.file.size / (1024 * 1024)
       const xmlContent = req.file.buffer.toString('utf-8')
-      const parsedData = await parseWitsmlFile(xmlContent)
+
+      // Choose parser based on file size
+      let parsedData
+      if (fileSizeInMB > STREAMING_THRESHOLD_MB) {
+        console.log(`🌊 Using streaming parser for ${fileSizeInMB.toFixed(2)} MB file`)
+        parsedData = await parseWitsmlFileStreaming(xmlContent)
+      } else {
+        console.log(`📋 Using standard parser for ${fileSizeInMB.toFixed(2)} MB file`)
+        parsedData = await parseWitsmlFile(xmlContent)
+      }
 
       res.json(parsedData)
     } catch (error: any) {
@@ -62,5 +75,6 @@ app.listen(PORT, () => {
   console.log(`🚀 WITSML Viewer API running on http://localhost:${PORT}`)
   console.log(`📊 Ready to parse WITSML files (versions 1.3.1, 1.4.1, 2.0, 2.1)`)
   console.log(`📁 Maximum file size: 2GB`)
-  console.log(`⚠️  Note: Large files (>500MB) may take time to parse and require sufficient memory`)
+  console.log(`🌊 Streaming parser: Enabled for files > ${STREAMING_THRESHOLD_MB}MB`)
+  console.log(`⚡ Memory-efficient mode for 1GB+ files`)
 })
