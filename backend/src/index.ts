@@ -69,13 +69,9 @@ app.post('/api/upload', (req, res) => {
           break
 
         case 'WITSML':
-          if (fileSizeInMB > STREAMING_THRESHOLD_MB) {
-            console.log(`🌊 Using streaming parser for large WITSML file`)
-            parsedData = await parseWitsmlFileStreaming(xmlContent)
-          } else {
-            console.log(`📋 Using standard WITSML parser`)
-            parsedData = await parseWitsmlFile(xmlContent)
-          }
+          // Always use standard parser with aggressive memory optimization for large files
+          console.log(`📋 Using optimized WITSML parser`)
+          parsedData = await parseWitsmlFile(xmlContent)
           break
 
         case 'CSV':

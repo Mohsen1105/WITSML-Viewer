@@ -151,7 +151,8 @@ function optimizeLargeData(data: any, maxSamples: number = 1000): any {
 export async function parseWitsmlFile(xmlContent: string): Promise<WitsmlData> {
   try {
     const fileSizeInMB = Buffer.byteLength(xmlContent, 'utf-8') / (1024 * 1024)
-    const isLargeFile = fileSizeInMB > 100 // Files larger than 100MB
+    const isLargeFile = fileSizeInMB > 50 // Files larger than 50MB
+    const isVeryLargeFile = fileSizeInMB > 200 // Files larger than 200MB
 
     console.log(`📄 Parsing WITSML file: ${fileSizeInMB.toFixed(2)} MB`)
 
@@ -159,22 +160,38 @@ export async function parseWitsmlFile(xmlContent: string): Promise<WitsmlData> {
     const header = xmlContent.substring(0, 5000)
     const version = detectWitsmlVersion(header)
 
-    // Configure XML parser with memory-efficient settings for large files
+    // Configure XML parser with VERY memory-efficient settings for large files
     const parserOptions = {
-      ignoreAttributes: false,
+      ignoreAttributes: isLargeFile, // Skip attributes for large files
       attributeNamePrefix: '$',
-      parseAttributeValue: !isLargeFile, // Skip number parsing for large files to save memory
+      parseAttributeValue: false, // Never parse values to save memory
       trimValues: true,
-      parseTrueNumberOnly: true,
+      parseTrueNumberOnly: false, // Skip number parsing
       arrayMode: false,
-      processEntities: true,
+      processEntities: false, // Skip entity processing
       removeNSPrefix: true,
-      // For large files, we could add more aggressive optimization
+      ignoreDeclaration: true,
+      ignorePiTag: true,
+      parseTagValue: !isLargeFile, // Skip tag value parsing for large files
+      parseAttributeValue: false,
+      trimValues: !isLargeFile,
+      cdataPropName: '__cdata',
+      commentPropName: false, // Don't keep comments
+      unpairedTags: []
     }
 
-    console.log('🔄 Parsing XML structure...')
+    console.log('🔄 Parsing XML structure (memory-efficient mode)...')
+
+    // Force garbage collection before parsing if available
+    if (global.gc) {
+      global.gc()
+    }
+
     const parser = new XMLParser(parserOptions)
     let parsedXml = parser.parse(xmlContent)
+
+    // Clear the XML content from memory immediately
+    xmlContent = ''
 
     console.log('🔍 Processing WITSML structure...')
 
@@ -188,10 +205,19 @@ export async function parseWitsmlFile(xmlContent: string): Promise<WitsmlData> {
       data = parsedXml
     }
 
-    // For very large files, optimize the data
+    // Clear parsed XML from memory
+    parsedXml = null
+
+    // Force garbage collection
+    if (global.gc) {
+      global.gc()
+    }
+
+    // For large files, be very aggressive with optimization
     if (isLargeFile) {
-      console.log('⚡ Optimizing large dataset (sampling arrays > 1000 items)...')
-      data = optimizeLargeData(data, 1000)
+      const maxSamples = isVeryLargeFile ? 500 : 1000
+      console.log(`⚡ Optimizing large dataset (sampling arrays > ${maxSamples} items)...`)
+      data = optimizeLargeData(data, maxSamples)
     }
 
     // Detect object type
@@ -199,8 +225,8 @@ export async function parseWitsmlFile(xmlContent: string): Promise<WitsmlData> {
 
     console.log(`✅ Parsing complete: ${version} ${objectType}`)
 
-    // Don't store raw XML for large files to save memory
-    const raw = isLargeFile ? '' : xmlContent
+    // Never store raw XML for large files
+    const raw = ''
 
     return {
       version,
