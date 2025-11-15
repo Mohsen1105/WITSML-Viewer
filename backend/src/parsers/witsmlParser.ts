@@ -106,27 +106,77 @@ function parseWitsml2x(parsedXml: any, version: string): any {
 }
 
 /**
+ * Optimize large log data by sampling (in-place modification for memory efficiency)
+ */
+function optimizeLargeData(data: any, maxSamples: number = 1000): any {
+  // Find and sample large arrays (like log data) - in-place to save memory
+  function sampleArrays(obj: any): any {
+    if (Array.isArray(obj)) {
+      // If array is very large, sample it
+      if (obj.length > maxSamples) {
+        console.log(`  📉 Sampling array with ${obj.length} items down to ${maxSamples}`)
+        const step = Math.floor(obj.length / maxSamples)
+        const sampled = []
+        for (let i = 0; i < obj.length; i += step) {
+          sampled.push(obj[i])
+        }
+        // Add last item to ensure we get the end
+        if (sampled.length < maxSamples && obj.length > 0) {
+          sampled.push(obj[obj.length - 1])
+        }
+        return sampled
+      }
+      // Recursively process array items
+      for (let i = 0; i < obj.length; i++) {
+        if (typeof obj[i] === 'object' && obj[i] !== null) {
+          obj[i] = sampleArrays(obj[i])
+        }
+      }
+    } else if (typeof obj === 'object' && obj !== null) {
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          obj[key] = sampleArrays(obj[key])
+        }
+      }
+    }
+    return obj
+  }
+
+  return sampleArrays(data)
+}
+
+/**
  * Main WITSML parser function
  */
 export async function parseWitsmlFile(xmlContent: string): Promise<WitsmlData> {
   try {
-    // Detect version
-    const version = detectWitsmlVersion(xmlContent)
+    const fileSizeInMB = Buffer.byteLength(xmlContent, 'utf-8') / (1024 * 1024)
+    const isLargeFile = fileSizeInMB > 100 // Files larger than 100MB
 
-    // Configure XML parser
+    console.log(`📄 Parsing WITSML file: ${fileSizeInMB.toFixed(2)} MB`)
+
+    // Detect version from header only (first 5000 chars)
+    const header = xmlContent.substring(0, 5000)
+    const version = detectWitsmlVersion(header)
+
+    // Configure XML parser with memory-efficient settings for large files
     const parserOptions = {
       ignoreAttributes: false,
       attributeNamePrefix: '$',
-      parseAttributeValue: true,
+      parseAttributeValue: !isLargeFile, // Skip number parsing for large files to save memory
       trimValues: true,
       parseTrueNumberOnly: true,
       arrayMode: false,
       processEntities: true,
-      removeNSPrefix: true, // Remove namespace prefixes for easier access
+      removeNSPrefix: true,
+      // For large files, we could add more aggressive optimization
     }
 
+    console.log('🔄 Parsing XML structure...')
     const parser = new XMLParser(parserOptions)
     let parsedXml = parser.parse(xmlContent)
+
+    console.log('🔍 Processing WITSML structure...')
 
     // Version-specific parsing
     let data
@@ -135,20 +185,31 @@ export async function parseWitsmlFile(xmlContent: string): Promise<WitsmlData> {
     } else if (version.startsWith('2.')) {
       data = parseWitsml2x(parsedXml, version)
     } else {
-      // Unknown version, try to parse as-is
       data = parsedXml
+    }
+
+    // For very large files, optimize the data
+    if (isLargeFile) {
+      console.log('⚡ Optimizing large dataset (sampling arrays > 1000 items)...')
+      data = optimizeLargeData(data, 1000)
     }
 
     // Detect object type
     const objectType = detectObjectType(data)
 
+    console.log(`✅ Parsing complete: ${version} ${objectType}`)
+
+    // Don't store raw XML for large files to save memory
+    const raw = isLargeFile ? '' : xmlContent
+
     return {
       version,
       type: objectType,
       data,
-      raw: xmlContent,
+      raw,
     }
   } catch (error: any) {
+    console.error('❌ Parser error:', error.message)
     throw new Error(`WITSML parsing error: ${error.message}`)
   }
 }

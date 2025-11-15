@@ -72,6 +72,24 @@
   font-size: 0.9rem;
 }
 
+.metadata .warning-note {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #fff3cd;
+  border-left: 3px solid #ffc107;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #856404;
+}
+
+@media (prefers-color-scheme: dark) {
+  .metadata .warning-note {
+    background-color: #3a3000;
+    color: #ffd966;
+    border-left-color: #ffc107;
+  }
+}
+
 .main-content {
   flex: 1;
   overflow: auto;

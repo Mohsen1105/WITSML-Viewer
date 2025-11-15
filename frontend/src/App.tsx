@@ -52,6 +52,11 @@ function App() {
               <h3>File Information</h3>
               <p><strong>WITSML Version:</strong> {witsmlData.version}</p>
               <p><strong>Object Type:</strong> {witsmlData.type}</p>
+              {!witsmlData.raw && (
+                <p className="warning-note">
+                  <strong>Note:</strong> Large file detected. Arrays with &gt;1000 items have been sampled for performance.
+                </p>
+              )}
             </div>
           )}
 
