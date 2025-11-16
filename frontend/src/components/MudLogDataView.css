@@ -1,0 +1,260 @@
+.mud-log-data-view {
+  padding: 20px;
+  height: 100%;
+  overflow: auto;
+}
+
+.data-header {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.metadata-section h2 {
+  margin-top: 0;
+  color: #1976d2;
+}
+
+.metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin: 15px 0;
+}
+
+.metadata-item {
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.metadata-item strong {
+  color: #666;
+  margin-right: 8px;
+}
+
+.index-info {
+  margin-top: 15px;
+  padding: 12px;
+  background: #e3f2fd;
+  border-left: 4px solid #1976d2;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.view-controls {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.view-controls button {
+  padding: 10px 20px;
+  border: 2px solid #1976d2;
+  background: white;
+  color: #1976d2;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.view-controls button:hover {
+  background: #e3f2fd;
+}
+
+.view-controls button.active {
+  background: #1976d2;
+  color: white;
+}
+
+.curve-selector {
+  margin: 20px 0;
+  padding: 15px;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.curve-selector h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.curve-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.curve-chip {
+  padding: 12px 16px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  background: white;
+  transition: all 0.2s;
+  min-width: 150px;
+  max-width: 250px;
+}
+
+.curve-chip:hover {
+  border-color: #1976d2;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+}
+
+.curve-chip.selected {
+  border-color: #1976d2;
+  background: #e3f2fd;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+}
+
+.curve-chip strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.curve-chip .unit {
+  color: #666;
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+.curve-chip .curve-description {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.curve-chip .curve-category {
+  font-size: 11px;
+  color: white;
+  background: #666;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-top: 6px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Category colors */
+.curve-chip.category-depth .curve-category {
+  background: #4caf50;
+}
+
+.curve-chip.category-time .curve-category {
+  background: #ff9800;
+}
+
+.curve-chip.category-drilling .curve-category {
+  background: #2196f3;
+}
+
+.curve-chip.category-mud .curve-category {
+  background: #795548;
+}
+
+.curve-chip.category-gas .curve-category {
+  background: #f44336;
+}
+
+.curve-chip.category-lithology .curve-category {
+  background: #9c27b0;
+}
+
+.curve-chip.category-survey .curve-category {
+  background: #009688;
+}
+
+.data-table-container {
+  overflow: auto;
+  max-height: calc(100vh - 500px);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table thead {
+  position: sticky;
+  top: 0;
+  background: #1976d2;
+  color: white;
+  z-index: 10;
+}
+
+.data-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #1565c0;
+}
+
+.data-table th.index-column {
+  background: #1565c0;
+  position: sticky;
+  left: 0;
+  z-index: 11;
+}
+
+.data-table .column-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.data-table .unit-label {
+  font-size: 12px;
+  font-weight: normal;
+  opacity: 0.9;
+}
+
+.data-table tbody tr {
+  transition: background 0.1s;
+}
+
+.data-table tbody tr:hover {
+  background: #f5f5f5;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.data-table tbody tr:nth-child(even):hover {
+  background: #f0f0f0;
+}
+
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e0e0e0;
+  text-align: left;
+}
+
+.data-table td.index-column {
+  font-weight: 600;
+  background: #f5f5f5;
+  position: sticky;
+  left: 0;
+  border-right: 2px solid #e0e0e0;
+}
+
+.chart-view {
+  padding: 40px;
+  text-align: center;
+  background: #f5f5f5;
+  border-radius: 8px;
+  min-height: 300px;
+}
+
+.chart-view p {
+  font-size: 16px;
+  color: #666;
+}

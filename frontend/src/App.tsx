@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import FileUpload from './components/FileUpload'
 import WitsmlTreeView from './components/WitsmlTreeView'
 import DataVisualization from './components/DataVisualization'
+import MudLogDataView from './components/MudLogDataView'
 import './App.css'
 
 export interface WitsmlData {
@@ -9,6 +10,16 @@ export interface WitsmlData {
   type: string
   data: any
   raw: string
+}
+
+// Type guard for MudLogSchema
+function isMudLogSchema(data: any): boolean {
+  return data &&
+    typeof data.metadata === 'object' &&
+    typeof data.indexing === 'object' &&
+    Array.isArray(data.curves) &&
+    typeof data.data === 'object' &&
+    Array.isArray(data.data.chunks)
 }
 
 function App() {
@@ -34,8 +45,8 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>WITSML Viewer</h1>
-        <p>Multi-version WITSML file viewer and monitor for drilling engineers</p>
+        <h1>Universal Mud Logging Viewer</h1>
+        <p>Multi-format mud logging file viewer for drilling engineers - WITSML, LAS, and more</p>
       </header>
 
       <div className="app-container">
@@ -47,7 +58,17 @@ function App() {
             isMonitoring={isMonitoring}
           />
 
-          {witsmlData && (
+          {witsmlData && isMudLogSchema(witsmlData.data) && (
+            <div className="metadata">
+              <h3>File Information</h3>
+              <p><strong>Format:</strong> {witsmlData.data.metadata.sourceFormat} {witsmlData.data.metadata.sourceVersion}</p>
+              <p><strong>Index Type:</strong> {witsmlData.data.indexing.type}</p>
+              <p><strong>Total Rows:</strong> {witsmlData.data.data.totalRows.toLocaleString()}</p>
+              <p><strong>Curves:</strong> {witsmlData.data.curves.length}</p>
+            </div>
+          )}
+
+          {witsmlData && !isMudLogSchema(witsmlData.data) && (
             <div className="metadata">
               <h3>File Information</h3>
               <p><strong>WITSML Version:</strong> {witsmlData.version}</p>
@@ -60,7 +81,7 @@ function App() {
             </div>
           )}
 
-          {witsmlData && (
+          {witsmlData && !isMudLogSchema(witsmlData.data) && (
             <WitsmlTreeView
               data={witsmlData.data}
               onSelectObject={handleObjectSelect}
@@ -71,25 +92,30 @@ function App() {
         <main className="main-content">
           {!witsmlData && (
             <div className="welcome">
-              <h2>Welcome to WITSML Viewer</h2>
-              <p>Upload a WITSML file to get started</p>
+              <h2>Welcome to Universal Mud Logging Viewer</h2>
+              <p>Upload a mud logging file to get started</p>
               <ul>
-                <li>Supports WITSML versions 1.3.1, 1.4.1, 2.0, and 2.1</li>
-                <li>View all WITSML objects in a hierarchical tree</li>
-                <li>Visualize logs, trajectories, and wellbore data</li>
-                <li>Monitor files with automatic refresh intervals</li>
-                <li>3D wellbore visualization</li>
+                <li>Supports WITSML (1.3.1, 1.4.1, 2.0, 2.1)</li>
+                <li>Supports LAS (2.0, 3.0)</li>
+                <li>Auto-detects file format</li>
+                <li>Handles files up to 10GB</li>
+                <li>Depth-based and time-based indexing</li>
+                <li>Interactive data visualization</li>
               </ul>
             </div>
           )}
 
-          {witsmlData && !selectedObject && (
+          {witsmlData && isMudLogSchema(witsmlData.data) && (
+            <MudLogDataView data={witsmlData.data} />
+          )}
+
+          {witsmlData && !isMudLogSchema(witsmlData.data) && !selectedObject && (
             <div className="info">
               <h2>Select an object from the tree to view details</h2>
             </div>
           )}
 
-          {selectedObject && (
+          {witsmlData && !isMudLogSchema(witsmlData.data) && selectedObject && (
             <DataVisualization
               data={selectedObject}
               witsmlVersion={witsmlData?.version || ''}
