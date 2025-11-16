@@ -65,13 +65,27 @@ app.post('/api/upload', (req, res) => {
       // Route to appropriate parser
       switch (detection.format) {
         case 'LAS':
-          parsedData = parseLASFile(xmlContent, CHUNK_SIZE)
+          const lasData = parseLASFile(xmlContent, CHUNK_SIZE)
+          // Wrap in WitsmlData format for frontend compatibility
+          parsedData = {
+            version: lasData.metadata.sourceVersion || 'unknown',
+            type: 'log',
+            data: lasData,
+            raw: ''
+          }
           break
 
         case 'WITSML':
           // Always use SAX streaming parser for consistent format and better performance
           console.log(`🌊 Using SAX streaming parser (supports WITSML 1.x and 2.x)`)
-          parsedData = await parseWitsmlFileSAX(xmlContent, CHUNK_SIZE)
+          const mudLogData = await parseWitsmlFileSAX(xmlContent, CHUNK_SIZE)
+          // Wrap in WitsmlData format for frontend compatibility
+          parsedData = {
+            version: mudLogData.metadata.sourceVersion || 'unknown',
+            type: 'log',
+            data: mudLogData,
+            raw: ''
+          }
           break
 
         case 'CSV':
