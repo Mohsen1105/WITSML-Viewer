@@ -69,14 +69,9 @@ app.post('/api/upload', (req, res) => {
           break
 
         case 'WITSML':
-          // Use SAX streaming parser for large files (>200MB)
-          if (fileSizeInMB > STREAMING_THRESHOLD_MB) {
-            console.log(`🌊 Using SAX streaming parser (true streaming, no memory limits)`)
-            parsedData = await parseWitsmlFileSAX(xmlContent, CHUNK_SIZE)
-          } else {
-            console.log(`📋 Using standard WITSML parser`)
-            parsedData = await parseWitsmlFile(xmlContent)
-          }
+          // Always use SAX streaming parser for consistent format and better performance
+          console.log(`🌊 Using SAX streaming parser (supports WITSML 1.x and 2.x)`)
+          parsedData = await parseWitsmlFileSAX(xmlContent, CHUNK_SIZE)
           break
 
         case 'CSV':
